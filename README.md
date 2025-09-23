@@ -1,6 +1,6 @@
 # 🎬 IMDb Sentiment Analysis
 
-A comprehensive machine learning project for sentiment analysis of IMDb movie reviews using multiple classification algorithms and ensemble methods. This project demonstrates production-ready machine learning practices including data preprocessing, model training, hyperparameter tuning, evaluation, and interpretability.
+A comprehensive machine learning project for sentiment analysis of IMDb movie reviews using multiple classification algorithms and ensemble methods. This project demonstrates production ready machine learning practices including data preprocessing, model training, hyperparameter tuning, evaluation, and interpretability.
 
 ## 📊 Dataset
 
