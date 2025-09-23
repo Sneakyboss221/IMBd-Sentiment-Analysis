@@ -82,6 +82,18 @@ The project uses comprehensive evaluation metrics:
 
 ## 📊 Visualizations
 
+All plots generated during training and evaluation are saved in the `results/plots/` folder.  
+
+You can find:  
+- 🟢 Confusion matrices for Logistic Regression, SVM, Multinomial Naive Bayes, and the Ensemble  
+- 📈 ROC curves for all four models  
+- 📊 F1-score comparison plot  
+- ⭐ Top 20 important features for Logistic Regression  
+
+**View all plots:** `results/plots/`
+
+
+
 ### Confusion Matrix - Ensemble Model
 ![Ensemble Confusion Matrix](results/plots/Confusion%20Matrix%20-%20Ensemble.png)
 
