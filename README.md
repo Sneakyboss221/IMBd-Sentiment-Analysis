@@ -198,3 +198,13 @@ imdb_sentiment_analysis/
 - ✅ **Visualization**: Interactive plots and confusion matrices
 - ✅ **Documentation**: Extensive documentation and code comments
 
+## 📁 Recommended Usage
+
+While this repository includes Jupyter notebooks for demonstration, **it is recommended to refer directly to the `src/` folder** for running and understanding the full pipeline.  
+
+The `src/` folder contains all the core modules:  
+- `preprocessing.py` – data loading, cleaning, and preprocessing  
+- `models.py` – model training and ensemble creation  
+- `evaluation.py` – evaluation metrics, visualization, and reports  
+
+> ✅ **Tip:** Notebooks are mainly for exploration and visualization. For running the complete pipeline efficiently, use the scripts in `src/`.
