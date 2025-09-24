@@ -1,6 +1,6 @@
 # 🎬 IMDb Sentiment Analysis
 
-A comprehensive machine learning project for sentiment analysis of IMDb movie reviews using multiple classification algorithms and ensemble methods. This project demonstrates production-ready machine learning practices including data preprocessing, model training, hyperparameter tuning, evaluation, and interpretability.
+A comprehensive machine learning project for sentiment analysis of IMDb movie reviews using multiple classification algorithms and ensemble methods. This project demonstrates production ready machine learning practices including data preprocessing, model training, hyperparameter tuning, evaluation, and interpretability.
 
 ## 📊 Dataset
 
@@ -81,6 +81,18 @@ The project uses comprehensive evaluation metrics:
 - **Consistent Performance**: All models achieve >85% accuracy
 
 ## 📊 Visualizations
+
+All plots generated during training and evaluation are saved in the `results/plots/` folder.  
+
+You can find:  
+- 🟢 Confusion matrices for Logistic Regression, SVM, Multinomial Naive Bayes, and the Ensemble  
+- 📈 ROC curves for all four models  
+- 📊 F1-score comparison plot  
+- ⭐ Top 20 important features for Logistic Regression  
+
+**View all plots:** `results/plots/`
+
+
 
 ### Confusion Matrix - Ensemble Model
 ![Ensemble Confusion Matrix](results/plots/Confusion%20Matrix%20-%20Ensemble.png)
@@ -186,6 +198,3 @@ imdb_sentiment_analysis/
 - ✅ **Visualization**: Interactive plots and confusion matrices
 - ✅ **Documentation**: Extensive documentation and code comments
 
----
-
-**🎬 This project demonstrates a complete, production-ready sentiment analysis system with ensemble methods, comprehensive evaluation, and interpretability analysis - perfect for showcasing machine learning skills!**
