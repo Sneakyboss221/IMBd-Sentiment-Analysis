@@ -70,16 +70,18 @@ The project uses comprehensive evaluation metrics:
 
 | Model               | Accuracy | F1-Score | Precision | Recall | ROC-AUC |
 |-------------------- |---------|----------|-----------|-------|---------|
-| **Logistic Regression** | **0.885** | **0.887** | **0.878** | **0.895** | **0.954** |
+| Logistic Regression | 0.885 | 0.887 | 0.878 | 0.895 | 0.954 |
 | LinearSVM            | 0.885   | 0.887    | 0.877     | 0.898   | 0.954   |
 | Ensemble             | 0.885   | 0.886    | 0.877     | 0.895   | 0.954   |
 | Multinomial NB       | 0.855   | 0.857    | 0.845     | 0.870   | 0.929   |
 
 ### Key Insights
-- **Best Model**: Logistic Regression with 88.7% F1-Score
-- **Close Performance**: Logistic Regression and LinearSVM are nearly identical
-- **Ensemble Benefits**: Slightly improved recall (90.0%) compared to individual models
-- **Consistent Performance**: All models achieve >85% accuracy
+- **Best Performing Models**: Logistic Regression and LinearSVM (tie)
+  - F1-Score 0.887, Accuracy 0.885, ROC-AUC 0.954
+- **Linear models dominate**: LR/SVM outperform Naive Bayes by ~3 F1 points
+- **TF-IDF with bigrams**: Captures sentiment context effectively
+- **Ensemble impact**: Matches top models (F1 0.886) and adds robustness
+- **Consistent performance**: All models achieve >85% accuracy
 
 ## 📊 Visualizations
 
@@ -109,22 +111,21 @@ You can find:
 
 ## 🏆 Conclusion
 
-### Best Model: LinearSVM
+### Best Performing Model: Logistic Regression & LinearSVM (Tie)
 - **F1-Score**: 88.7%
 - **Accuracy**: 88.5%
 - **ROC-AUC**: 95.4%
-- **Strengths**: Strong generalization with robust margin-based decision boundary
 
-### Ensemble Purpose
-- **Configuration**: LR + LinearSVM, soft voting with equal (50/50) weights
-- **Performance**: Comparable to the best individual model (SVM) with ROC-AUC 0.954
-- **Robustness**: Combines strengths of LR and SVM; NB removed from ensemble
+### Ensemble Analysis
+- **Configuration**: LR + LinearSVM (Naive Bayes excluded due to lower performance)
+- **Performance**: Matches individual models (F1 88.6%, ROC-AUC 0.954)
+- **Benefit**: Reduces variance and provides more stable predictions
 
-### Overall Insights
-- **Text preprocessing** significantly impacts model performance
-- **TF-IDF with bigrams** captures important contextual information
-- **Linear models** perform exceptionally well on this dataset
-- **Ensemble methods** provide marginal but consistent improvements
+### Key Technical Insights
+1. Linear models dominate text classification on this dataset (LR/SVM > NB by ~3%)
+2. TF-IDF with bigrams effectively captures sentiment context
+3. Hyperparameter optimization is crucial to maximize performance
+4. The ensemble offers insurance against individual model variance
 
 ## 🚀 How to Run
 
@@ -178,28 +179,12 @@ imdb_sentiment_analysis/
 - **Behavior**: LR/SVM are loaded if saved; ensemble is rebuilt every run from LR+SVM
 - **Comparison**: MultinomialNB is evaluated for charts only and excluded from the ensemble
 
-### Code Organization
-- **Modular Design**: Clean separation of preprocessing, training, and evaluation
-- **Error Handling**: Comprehensive validation and error management
-- **Documentation**: Extensive docstrings and comments
-- **Reproducibility**: Fixed random seeds for consistent results
-
 ## 📝 Notes
 
 - **Model Saving**: All models are automatically saved during training to the `models/` directory
 - **Ensemble Functionality**: Comprehensive testing ensures all models work correctly together
 - **Visualization**: All plots are automatically generated and saved to `results/plots/`
 - **Evaluation Report**: Detailed performance metrics saved to `results/evaluation_report.md`
-
-## 🎯 Key Features
-
-- ✅ **Production-Ready**: Modular design with comprehensive error handling
-- ✅ **Comprehensive Evaluation**: Multiple metrics and visualizations
-- ✅ **Automatic Persistence**: Models saved and loaded automatically
-- ✅ **Ensemble Methods**: Advanced ensemble with proper probability handling
-- ✅ **Interpretability**: Feature importance analysis and model insights
-- ✅ **Visualization**: Interactive plots and confusion matrices
-- ✅ **Documentation**: Extensive documentation and code comments
 
 ## 📁 Recommended Usage
 
@@ -210,4 +195,53 @@ The `src/` folder contains all the core modules:
 - `models.py` – model training and ensemble creation  
 - `evaluation.py` – evaluation metrics, visualization, and reports  
 
-> ✅ **Tip:** Notebooks are mainly for exploration and visualization. For running the complete pipeline efficiently, use the scripts in `src/`.
+## 🦭 **The Initial Vision**
+
+The original architecture plan included:
+
+- **Advanced SVM Implementation**: Standard SVC with both linear and RBF kernels to capture both linear patterns and complex non-linear relationships in text data
+- **XGBoost Integration**: A powerful gradient boosting model to provide algorithmic diversity and handle feature interactions differently from linear models  
+- **Sophisticated Hyperparameter Tuning**: Bayesian optimization techniques to systematically explore parameter spaces beyond basic grid search
+- **Three-Model Ensemble**: Combining Logistic Regression, SVM, and XGBoost with optimized weighting schemes
+
+### **Confronting Computational Realities**
+
+During implementation, I encountered practical constraints that required strategic adaptations:
+
+**The SVM Challenge:**
+- The RBF kernel implementation proved computationally expensive, with training times exceeding 60+ minutes on the full dataset on both google colab and personal laptop.
+- After experimentation, I found that LinearSVC provided nearly identical performance (88.7% F1) with 10x faster training times
+- This trade off demonstrated that for text classification tasks, linear kernels often outperform more complex alternatives while being significantly more efficient
+
+**XGBoost Limitations:**
+- Initial XGBoost training attempts revealed suboptimal performance (83.1% F1) compared to linear models
+- Tree based models struggled with the high dimensional sparse features generated by TF-IDF vectorization
+- Multinomial Naive Bayes emerged as a better alternative, providing faster training and better suitability for text data while maintaining probabilistic outputs
+
+**Hardware Constraints:**
+- Working within Colab's free tier limitations required smart resource management
+- Large scale hyperparameter tuning with Bayesian optimization proved infeasible within reasonable timeframes
+- I prioritized techniques that delivered the best performance to computation ratio
+
+### **Ensemble Evolution: Data Driven Optimization**
+
+The ensemble architecture went through several iterations based on empirical results:
+
+**First Iteration: Three Model Ensemble**
+- Initial implementation included all three models with equal weighting
+- Performance analysis revealed a critical insight: Multinomial NB (85.7% F1) was creating a performance bottleneck
+- The ensemble was being dragged down by the weakest model rather than enhanced by model diversity
+
+**Final Architecture: Optimized Two Model Approach**
+- After thorough evaluation, I made the strategic decision to remove Multinomial NB from the ensemble
+- The final configuration uses only Logistic Regression and LinearSVM with equal weighting
+- This approach leverages two equally strong models (both 88.7% F1) without performance dilution
+
+### **Why This Approach felt right**
+
+The final architecture represents an optimal balance of performance, efficiency, and practicality:
+- **Performance**: 88.7% F1-score 
+- **Efficiency**: Reasonable training times suitable for iterative development
+- **Robustness**: Ensemble approach provides stability without unnecessary complexity
+- **Maintainability**: Clean, interpretable models that can be easily understood and improved
+
