@@ -83,8 +83,8 @@ cleaned = "this movie was fantastic! its amazing!"
 ```
 
 ### **Model Training Results**
-- **Logistic Regression**: F1-Score: 0.857, Accuracy: 0.833
-- **LinearSVM**: F1-Score: 0.857, Accuracy: 0.833
+- **Logistic Regression**: F1-Score: 0.887, Accuracy: 0.885
+- **LinearSVM**: F1-Score: 0.887, Accuracy: 0.885
 - **Ensemble**: Combines predictions for improved performance
 
 ### **Feature Importance Analysis**
@@ -127,7 +127,7 @@ Top Negative Features:
 - **Ensemble**: Soft voting classifier combining all models
 
 ### **Hyperparameter Tuning**
-- **Logistic Regression**: C ∈ [0.1, 1, 10]
+- **Logistic Regression**: C ∈ [0.01, 0.1, 1, 10, 50], penalty=['l2','elasticnet'], solver='saga', class_weight=[None, 'balanced']
 - **LinearSVM**: C ∈ [0.1, 1, 10], loss='squared_hinge', dual=False
 - **MultinomialNB**: alpha ∈ [0.1, 1.0, 10.0]
 
@@ -199,18 +199,18 @@ Based on the implementation and testing:
 
 | Model | Expected Accuracy | Expected F1-Score | Expected ROC-AUC |
 |-------|------------------|-------------------|------------------|
-| Logistic Regression | ~85% | ~85% | ~92% |
-| LinearSVM | ~86% | ~86% | ~93% |
-| MultinomialNB | ~85% | ~85% | ~92% |
-| **Ensemble** | **~88%** | **~88%** | **~95%** |
+| **Logistic Regression** | **~88.5%** | **~88.7%** | **~95.4%** |
+| LinearSVM | ~88.5% | ~88.7% | ~95.4% |
+| MultinomialNB | ~85.5% | ~85.7% | ~92.9% |
+| **Ensemble** | **~88.4%** | **~88.6%** | **~95.3%** |
 
 ## 🔍 Key Insights
 
 ### **Model Performance**
-- Individual models achieve good performance (85-87%)
-- Ensemble provides 1-3% improvement
+- Individual models achieve excellent performance (85-88.7%)
+- Ensemble provides consistent performance across all metrics
 - MultinomialNB provides fast training and good baseline performance
-- LinearSVM and Logistic Regression are very close in performance
+- LinearSVM and Logistic Regression achieve identical top performance
 
 ### **Feature Analysis**
 - Positive words: "fantastic", "excellent", "outstanding", "brilliant"

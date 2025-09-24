@@ -31,8 +31,8 @@ The project uses the **IMDb Movie Reviews Dataset** containing:
 
 ### 1. Logistic Regression
 - **Algorithm**: Linear classifier with L2 regularization
-- **Hyperparameters**: C ∈ [0.1, 1, 10], max_iter=1000
-- **Best parameters**: C=1, max_iter=1000
+- **Hyperparameters**: C ∈ [0.01, 0.1, 1, 10, 50], penalty=['l2','elasticnet'], solver='saga', class_weight=[None, 'balanced']
+- **Best parameters**: C=1, penalty='l2', solver='saga', class_weight=None
 - **Strengths**: Interpretable, fast training, good baseline
 
 ### 2. LinearSVM (Support Vector Machine)
@@ -48,10 +48,11 @@ The project uses the **IMDb Movie Reviews Dataset** containing:
 - **Strengths**: Fast training, good for text data, probabilistic outputs
 
 ### 4. Ensemble (Soft Voting)
-- **Method**: Soft voting classifier combining all three models
+- **Method**: Soft voting classifier combining Logistic Regression and LinearSVM
+- **Weights**: Equal weighting (50/50) with probability averaging
 - **Probability handling**: Proper LinearSVC probability calibration
-- **Purpose**: Leverage strengths of different algorithms
-- **Benefits**: Improved robustness and generalization
+- **Purpose**: Leverage strengths of the two strongest models
+- **Benefits**: Robust, stable performance without Naive Bayes
 
 ## 📈 Evaluation Metrics
 
@@ -69,13 +70,13 @@ The project uses comprehensive evaluation metrics:
 
 | Model               | Accuracy | F1-Score | Precision | Recall | ROC-AUC |
 |-------------------- |---------|----------|-----------|-------|---------|
-| **LinearSVM**        | **0.885** | **0.887** | **0.877** | **0.898** | **0.954** |
-| Logistic Regression  | 0.884   | 0.886    | 0.876     | 0.896   | 0.954   |
-| Ensemble             | 0.884   | 0.886    | 0.874     | 0.900   | 0.953   |
+| **Logistic Regression** | **0.885** | **0.887** | **0.878** | **0.895** | **0.954** |
+| LinearSVM            | 0.885   | 0.887    | 0.877     | 0.898   | 0.954   |
+| Ensemble             | 0.885   | 0.886    | 0.877     | 0.895   | 0.954   |
 | Multinomial NB       | 0.855   | 0.857    | 0.845     | 0.870   | 0.929   |
 
 ### Key Insights
-- **Best Model**: LinearSVM with 88.7% F1-Score
+- **Best Model**: Logistic Regression with 88.7% F1-Score
 - **Close Performance**: Logistic Regression and LinearSVM are nearly identical
 - **Ensemble Benefits**: Slightly improved recall (90.0%) compared to individual models
 - **Consistent Performance**: All models achieve >85% accuracy
@@ -85,8 +86,8 @@ The project uses comprehensive evaluation metrics:
 All plots generated during training and evaluation are saved in the `results/plots/` folder.  
 
 You can find:  
-- 🟢 Confusion matrices for Logistic Regression, SVM, Multinomial Naive Bayes, and the Ensemble  
-- 📈 ROC curves for all four models  
+- 🟢 Confusion matrices for Logistic Regression, SVM, and the Ensemble  
+- 📈 ROC curves for these three models  
 - 📊 F1-score comparison plot  
 - ⭐ Top 20 important features for Logistic Regression  
 
@@ -112,12 +113,12 @@ You can find:
 - **F1-Score**: 88.7%
 - **Accuracy**: 88.5%
 - **ROC-AUC**: 95.4%
-- **Strengths**: Optimal balance of precision and recall
+- **Strengths**: Strong generalization with robust margin-based decision boundary
 
 ### Ensemble Purpose
-- **Improved Recall**: 90.0% (highest among all models)
-- **Robustness**: Combines strengths of different algorithms
-- **Generalization**: Better performance on diverse text patterns
+- **Configuration**: LR + LinearSVM, soft voting with equal (50/50) weights
+- **Performance**: Comparable to the best individual model (SVM) with ROC-AUC 0.954
+- **Robustness**: Combines strengths of LR and SVM; NB removed from ensemble
 
 ### Overall Insights
 - **Text preprocessing** significantly impacts model performance
@@ -171,9 +172,11 @@ imdb_sentiment_analysis/
 - **Format**: Joblib serialization for efficient storage and loading
 
 ### Ensemble Functionality
-- **Soft Voting**: Combines probability outputs from all models
+- **Soft Voting**: Combines probability outputs from Logistic Regression and LinearSVM only
+- **Weights**: Equal weighting (50/50) with probability averaging
 - **Probability Calibration**: Proper handling of LinearSVC probabilities
-- **Robustness Testing**: Comprehensive functionality validation
+- **Behavior**: LR/SVM are loaded if saved; ensemble is rebuilt every run from LR+SVM
+- **Comparison**: MultinomialNB is evaluated for charts only and excluded from the ensemble
 
 ### Code Organization
 - **Modular Design**: Clean separation of preprocessing, training, and evaluation

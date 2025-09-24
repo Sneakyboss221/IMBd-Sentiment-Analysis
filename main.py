@@ -24,6 +24,125 @@ from preprocessing import TextPreprocessor, load_imdb_data, validate_data
 from models import ModelTrainer
 from evaluation import ModelEvaluator
 
+def prepare_dataset(dataset_path: str = "IMDB Dataset.csv", test_size: float = 0.2, random_state: int = 42):
+    print("📊 Step 1: Data Preparation")
+    print("-" * 30)
+    df = load_imdb_data(dataset_path)
+    if df is None:
+        raise FileNotFoundError(f"Dataset not found at {dataset_path}")
+    if not validate_data(df):
+        raise ValueError("Data validation failed")
+    preprocessor = TextPreprocessor(
+        max_features=5000,
+        min_df=2,
+        ngram_range=(1, 2)
+    )
+    X_train, X_test, y_train, y_test, fitted_preprocessor = preprocessor.prepare_data(
+        df, test_size=test_size, random_state=random_state
+    )
+    print(f"Training set: {X_train.shape}")
+    print(f"Test set: {X_test.shape}")
+    print(f"Features: {X_train.shape[1]}")
+    return X_train, X_test, y_train, y_test, fitted_preprocessor
+
+def train_models(X_train, y_train, X_test, y_test, models_dir: str = 'models/'):
+    print("\n🤖 Step 2: Model Training")
+    print("-" * 30)
+    trainer = ModelTrainer(random_state=42)
+    print("\nTraining Logistic Regression...")
+    trainer.train_logistic_regression(
+        X_train, y_train, X_test, y_test,
+        param_grid={
+            'C': [0.01, 0.1, 1, 10, 50],
+            'penalty': ['l2', 'elasticnet'],
+            'solver': ['saga'],
+            'class_weight': [None, 'balanced']
+        },
+        cv=10,
+        filepath_prefix=models_dir
+    )
+    print("\nTraining LinearSVM...")
+    trainer.train_svm(
+        X_train, y_train, X_test, y_test,
+        param_grid={'C': [0.1, 1, 10], 'loss': ['squared_hinge'], 'dual': [False]},
+        filepath_prefix=models_dir
+    )
+    print("\nCreating optimized ensemble (LR + SVM, soft voting 50/50)...")
+    trainer.create_ensemble(
+        X_train, y_train, X_test, y_test,
+        voting='soft',
+        weights=[0.5, 0.5],
+        filepath_prefix=models_dir
+    )
+    # Optional: include NB in comparisons if present
+    try:
+        trainer.train_multinomial_nb(
+            X_train, y_train, X_test, y_test,
+            param_grid={'alpha': [1.0]},
+            filepath_prefix=models_dir
+        )
+    except Exception:
+        pass
+    return trainer
+
+def evaluate_and_visualize(trainer: ModelTrainer, X_test, y_test, preprocessor: TextPreprocessor, results_dir: str = 'results/'):
+    print("\n📊 Step 3: Evaluation and Visualization")
+    print("-" * 30)
+    os.makedirs(results_dir, exist_ok=True)
+    plots_dir = os.path.join(results_dir, 'plots')
+    os.makedirs(plots_dir, exist_ok=True)
+    evaluator = ModelEvaluator()
+    evaluation_results = {}
+    for model_name, results in trainer.results.items():
+        evaluation_results[model_name] = evaluator.evaluate_model(
+            y_test, results['predictions'], results['probabilities'], model_name
+        )
+    evaluator.create_model_comparison_plot(
+        evaluation_results,
+        metric='f1_score',
+        save_path=os.path.join(plots_dir, 'Model Comparision - F1 Score.png')
+    )
+    for name in ['logistic_regression', 'svm', 'ensemble']:
+        if name in trainer.results:
+            evaluator.plot_confusion_matrix(
+                y_test,
+                trainer.results[name]['predictions'],
+                name.replace('_', ' ').title(),
+                save_path=os.path.join(plots_dir, f"Confusion Matrix - {name.replace('_', ' ').title()}.png")
+            )
+    for model_name, results in trainer.results.items():
+        if results['probabilities'] is not None:
+            evaluator.plot_roc_curve(
+                y_test,
+                results['probabilities'],
+                model_name.replace('_', ' ').title(),
+                save_path=os.path.join(plots_dir, f"ROC Curve - {model_name.replace('_', ' ').title()}.png")
+            )
+    if 'logistic_regression' in trainer.models:
+        lr_model = trainer.models['logistic_regression']
+        if hasattr(lr_model, 'coef_'):
+            feature_names = preprocessor.get_feature_names()
+            importance_scores = np.abs(lr_model.coef_[0])
+            evaluator.plot_feature_importance(
+                feature_names,
+                importance_scores,
+                'Logistic Regression',
+                save_path=os.path.join(plots_dir, 'Top 20 Features - Logistic Regression.png')
+            )
+    report_path = os.path.join(results_dir, 'evaluation_report.md')
+    evaluator.generate_report(evaluation_results, report_path)
+    return evaluation_results
+
+def print_summary(evaluation_results: dict):
+    print("\n📌 Summary")
+    print("-" * 30)
+    for model_name, results in evaluation_results.items():
+        print(f"{model_name.replace('_', ' ').title():20s} - F1: {results['f1_score']:.3f}, Accuracy: {results['accuracy']:.3f}")
+    best_model = max(evaluation_results.keys(), key=lambda x: evaluation_results[x]['f1_score'])
+    print(f"\n🏆 Best Model: {best_model.replace('_', ' ').title()}")
+    print(f"   F1-Score: {evaluation_results[best_model]['f1_score']:.3f}")
+    print(f"   Accuracy: {evaluation_results[best_model]['accuracy']:.3f}")
+
 def load_excel_dataset(file_path):
     """
     Load dataset from Excel file.
@@ -180,228 +299,14 @@ def create_sample_dataset():
     return df
 
 def main():
-    """
-    Main pipeline execution.
-    """
     print("🎬 IMDb Sentiment Analysis - Complete Pipeline")
     print("=" * 60)
-    
-    # Step 1: Data Preparation
-    print("\n📊 Step 1: Data Preparation")
-    print("-" * 30)
-    
-    # Load your IMDb dataset
-    dataset_path = "IMDB Dataset.csv"
-    
-    # Try to load IMDb dataset first, fallback to sample if not found
-    df = load_imdb_data(dataset_path)
-    if df is None:
-        print("Falling back to sample dataset...")
-        df = create_sample_dataset()
-    
-    # Validate data
-    if not validate_data(df):
-        print("❌ Data validation failed!")
-        return
-    
-    # Step 2: Preprocessing
-    print("\n🔧 Step 2: Text Preprocessing")
-    print("-" * 30)
-    
-    # Initialize preprocessor
-    preprocessor = TextPreprocessor(
-        max_features=5000,
-        min_df=2,
-        ngram_range=(1, 2)
-    )
-    
-    # Prepare data
-    X_train, X_test, y_train, y_test, fitted_preprocessor = preprocessor.prepare_data(
-        df, test_size=0.2, random_state=42
-    )
-    
-    print(f"✅ Preprocessing completed!")
-    print(f"Training set: {X_train.shape}")
-    print(f"Test set: {X_test.shape}")
-    print(f"Features: {X_train.shape[1]}")
-    
-    # Step 3: Model Training
-    print("\n🤖 Step 3: Model Training")
-    print("-" * 30)
-    
-    # Initialize trainer
-    trainer = ModelTrainer(random_state=42)
-    
-    # Train Logistic Regression (auto-saves if new, loads if exists)
-    print("\nTraining Logistic Regression...")
-    lr_results = trainer.train_logistic_regression(
-        X_train, y_train, X_test, y_test,
-        param_grid={'C': [0.1, 1, 10], 'max_iter': [1000]},
-        filepath_prefix='models/'
-    )
-    
-    # Train LinearSVM (auto-saves if new, loads if exists)
-    print("\nTraining LinearSVM...")
-    svm_results = trainer.train_svm(
-        X_train, y_train, X_test, y_test,
-        param_grid={'C': [0.1, 1, 10], 'loss': ['squared_hinge'], 'dual': [False]},
-        filepath_prefix='models/'
-    )
-    
-    # Train Multinomial Naive Bayes (auto-saves if new, loads if exists)
-    print("\nTraining Multinomial Naive Bayes...")
-    nb_results = trainer.train_multinomial_nb(
-        X_train, y_train, X_test, y_test,
-        param_grid={
-            'alpha': [0.1, 1.0, 10.0]
-        },
-        filepath_prefix='models/'
-    )
-    
-    # Create ensemble (auto-saves if new, loads if exists)
-    print("\nCreating ensemble...")
-    ensemble_results = trainer.create_ensemble(
-        X_train, y_train, X_test, y_test,
-        filepath_prefix='models/'
-    )
-    
-    # Test ensemble functionality
-    print("\n🧪 Testing ensemble functionality...")
-    ensemble_test_passed = trainer.test_ensemble_functionality(X_test, y_test)
-    if ensemble_test_passed:
-        print("✅ Ensemble functionality test passed!")
-    else:
-        print("❌ Ensemble functionality test failed!")
-    
-    # Step 4: Model Comparison
-    print("\n📈 Step 4: Model Comparison")
-    print("-" * 30)
-    
-    comparison_df = trainer.compare_models()
-    
-    # Step 5: Evaluation and Visualization
-    print("\n📊 Step 5: Evaluation and Visualization")
-    print("-" * 30)
-    
-    # Initialize evaluator
-    evaluator = ModelEvaluator()
-    
-    # Evaluate all models
-    evaluation_results = {}
-    for model_name, results in trainer.results.items():
-        evaluation_results[model_name] = evaluator.evaluate_model(
-            y_test, results['predictions'], results['probabilities'], model_name
-        )
-    
-    # Create visualizations
-    print("\nCreating visualizations...")
-    
-    # Model comparison plot
-    evaluator.create_model_comparison_plot(evaluation_results, metric='f1_score')
-    
-    # Confusion matrices
-    for model_name, results in trainer.results.items():
-        evaluator.plot_confusion_matrix(
-            y_test, results['predictions'], model_name
-        )
-    
-    # ROC curves
-    for model_name, results in trainer.results.items():
-        if results['probabilities'] is not None:
-            evaluator.plot_roc_curve(
-                y_test, results['probabilities'], model_name
-            )
-    
-    # Feature importance (for Logistic Regression)
-    if 'logistic_regression' in trainer.models:
-        feature_names = fitted_preprocessor.get_feature_names()
-        lr_model = trainer.models['logistic_regression']
-        
-        if hasattr(lr_model, 'coef_'):
-            importance_scores = np.abs(lr_model.coef_[0])
-            evaluator.plot_feature_importance(
-                feature_names, importance_scores, 'Logistic Regression'
-            )
-    
-    # Step 6: Model Persistence Summary
-    print("\n💾 Step 6: Model Persistence Summary")
-    print("-" * 30)
-    
-    # Create results directory
+    os.makedirs('models', exist_ok=True)
     os.makedirs('results', exist_ok=True)
-    
-    # All models are automatically saved during training
-    print("✅ All models automatically saved during training")
-    print("📁 Models saved to: models/ directory")
-    
-    # Save evaluation report
-    report = evaluator.generate_report(evaluation_results, 'results/evaluation_report.md')
-    
-    # Step 7: Interactive Prediction Demo
-    print("\n🔮 Step 7: Interactive Prediction Demo")
-    print("-" * 30)
-    
-    # Sample new reviews for prediction
-    new_reviews = [
-        "This movie was absolutely amazing! Best film I've seen this year!",
-        "Terrible movie. Boring and poorly made. Would not recommend.",
-        "Great acting and wonderful cinematography. Highly recommended!",
-        "Waste of time. Confusing plot and bad direction.",
-        "Outstanding performances and brilliant storytelling. A masterpiece!",
-        "Awful film with terrible acting and poor direction.",
-        "Fantastic movie with amazing special effects and great acting.",
-        "Disappointing experience. The movie was confusing and poorly executed."
-    ]
-    
-    print("Analyzing new reviews:")
-    print("-" * 40)
-    
-    for i, review in enumerate(new_reviews, 1):
-        predictions = trainer.predict_single(review, fitted_preprocessor)
-        
-        # Get ensemble prediction (preferred)
-        if 'ensemble' in predictions:
-            pred = predictions['ensemble']['prediction']
-            prob = predictions['ensemble']['probability']
-            confidence = predictions['ensemble']['confidence']
-        else:
-            # Fallback to first available model
-            pred = list(predictions.values())[0]['prediction']
-            prob = list(predictions.values())[0]['probability']
-            confidence = list(predictions.values())[0]['confidence']
-        
-        sentiment = "Positive" if pred == 1 else "Negative"
-        print(f"{i}. {sentiment:8s} ({confidence:5s} confidence: {prob:.3f}) - {review}")
-    
-    # Final Summary
-    print("\n" + "=" * 60)
-    print("🎉 PIPELINE COMPLETED SUCCESSFULLY!")
-    print("=" * 60)
-    
-    print("\n📊 Final Results Summary:")
-    print("-" * 30)
-    for model_name, results in evaluation_results.items():
-        print(f"{model_name.replace('_', ' ').title():20s} - F1: {results['f1_score']:.3f}, Accuracy: {results['accuracy']:.3f}")
-    
-    # Best model
-    best_model = max(evaluation_results.keys(), 
-                    key=lambda x: evaluation_results[x]['f1_score'])
-    print(f"\n🏆 Best Model: {best_model.replace('_', ' ').title()}")
-    print(f"   F1-Score: {evaluation_results[best_model]['f1_score']:.3f}")
-    print(f"   Accuracy: {evaluation_results[best_model]['accuracy']:.3f}")
-    
-    print("\n📁 Files Created:")
-    print("- models/ - Saved trained models")
-    print("- results/ - Evaluation results and reports")
-    print("- Visualizations displayed above")
-    
-    print("\n🚀 Next Steps:")
-    print("1. Review the evaluation report in results/evaluation_report.md")
-    print("2. Use the saved models for predictions on new data")
-    print("3. Experiment with different parameters and models")
-    print("4. Try the Jupyter notebooks for detailed analysis")
-    
-    print("\n✨ Thank you for using the IMDb Sentiment Analysis Pipeline!")
+    X_train, X_test, y_train, y_test, preprocessor = prepare_dataset()
+    trainer = train_models(X_train, y_train, X_test, y_test, models_dir='models/')
+    evaluation_results = evaluate_and_visualize(trainer, X_test, y_test, preprocessor, results_dir='results/')
+    print_summary(evaluation_results)
 
 if __name__ == "__main__":
     main()

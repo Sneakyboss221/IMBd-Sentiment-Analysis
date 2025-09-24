@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import VotingClassifier
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, StratifiedKFold
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 from sklearn.metrics import classification_report, confusion_matrix
 from scipy.special import expit  # sigmoid function
@@ -46,7 +46,12 @@ class LinearSVCWrapper:
         """
         Delegate all other attributes to the wrapped model.
         """
-        return getattr(self.model, name)
+        if name in ['model', '__getattr__']:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+        try:
+            return getattr(self.model, name)
+        except AttributeError:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
 class CustomVotingClassifier:
     """
@@ -153,7 +158,7 @@ class ModelTrainer:
         self.ensemble = None
         
     def train_logistic_regression(self, X_train, y_train, X_test, y_test, 
-                                 param_grid=None, cv=5, filepath_prefix='models/'):
+                                 param_grid=None, cv=10, filepath_prefix='models/'):
         """
         Train Logistic Regression model with hyperparameter tuning.
         Loads existing model if available, otherwise trains new one.
@@ -162,7 +167,7 @@ class ModelTrainer:
             X_train, y_train: Training data
             X_test, y_test: Test data
             param_grid (dict): Parameter grid for tuning
-            cv (int): Cross-validation folds
+            cv (int): Cross-validation folds (default 10 for StratifiedKFold)
             filepath_prefix (str): Prefix for model file paths
             
         Returns:
@@ -201,17 +206,23 @@ class ModelTrainer:
         print("Training Logistic Regression...")
         
         if param_grid is None:
+            # Expanded hyperparameter grid as requested
             param_grid = {
-                'C': [0.1, 1, 10],
-                'max_iter': [1000, 2000]
+                'C': [0.01, 0.1, 1, 10, 50],
+                'penalty': ['l2', 'elasticnet'],
+                'solver': ['saga'],
+                'class_weight': [None, 'balanced']
             }
         
         # Create model
-        lr = LogisticRegression(random_state=self.random_state)
+        lr = LogisticRegression(random_state=self.random_state, max_iter=10000)
         
-        # Grid search
+        # Use StratifiedKFold for cross-validation
+        cv_strategy = StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.random_state)
+        
+        # Grid search with StratifiedKFold
         grid_search = GridSearchCV(
-            lr, param_grid, cv=cv, scoring='f1', n_jobs=-1
+            lr, param_grid, cv=cv_strategy, scoring='f1', n_jobs=-1
         )
         grid_search.fit(X_train, y_train)
         
@@ -241,6 +252,7 @@ class ModelTrainer:
         
         print(f"✅ Logistic Regression - F1: {results['f1_score']:.3f}, Accuracy: {results['accuracy']:.3f}")
         print(f"Best parameters: {results['best_params']}")
+        print(f"Cross-validation score: {results['cv_score']:.3f}")
         
         # Save the trained model
         import os
@@ -468,48 +480,28 @@ class ModelTrainer:
         Returns:
             dict: Ensemble results
         """
-        # Check if ensemble already exists
+        # Always (re)create optimized ensemble per current configuration
         import os
         ensemble_filename = f"{filepath_prefix}ensemble.joblib"
-        if os.path.exists(ensemble_filename):
-            print("✅ Loading existing ensemble model...")
-            self.ensemble = joblib.load(ensemble_filename)
-            
-            # Evaluate loaded ensemble
-            y_pred = self.ensemble.predict(X_test)
-            y_pred_proba = self.ensemble.predict_proba(X_test)[:, 1]
-            
-            results = {
-                'model': self.ensemble,
-                'predictions': y_pred,
-                'probabilities': y_pred_proba,
-                'accuracy': accuracy_score(y_test, y_pred),
-                'f1_score': f1_score(y_test, y_pred),
-                'precision': precision_score(y_test, y_pred),
-                'recall': recall_score(y_test, y_pred),
-                'roc_auc': roc_auc_score(y_test, y_pred_proba),
-                'voting': voting,
-                'weights': weights
-            }
-            
-            self.results['ensemble'] = results
-            print(f"✅ Loaded Ensemble - F1: {results['f1_score']:.3f}, Accuracy: {results['accuracy']:.3f}")
-            return results
+        print("Creating optimized ensemble (LR + SVM, soft voting 50/50)...")
         
-        print("Creating ensemble model...")
-        
-        # Prepare estimators
+        # Prepare estimators: only keep Logistic Regression and SVM
         estimators = []
-        for name, model in self.models.items():
-            estimators.append((name, model))
+        for name in ['logistic_regression', 'svm']:
+            if name in self.models:
+                estimators.append((name, self.models[name]))
         
         if not estimators:
-            raise ValueError("No models trained yet. Train individual models first.")
+            raise ValueError("No eligible models found. Load or train Logistic Regression and SVM first.")
+
+        # Default to equal weights for LR and SVM if not provided
+        if weights is None:
+            weights = [0.5] * len(estimators)
         
         # Create custom ensemble that handles LinearSVC properly
         self.ensemble = CustomVotingClassifier(
             estimators=estimators,
-            voting=voting,
+            voting='soft',
             weights=weights
         )
         
@@ -538,12 +530,10 @@ class ModelTrainer:
         
         print(f"✅ Ensemble - F1: {results['f1_score']:.3f}, Accuracy: {results['accuracy']:.3f}")
         
-        # Save the ensemble model
-        import os
+        # Save the ensemble model (overwrite existing)
         os.makedirs(filepath_prefix, exist_ok=True)
-        filename = f"{filepath_prefix}ensemble.joblib"
-        joblib.dump(self.ensemble, filename)
-        print(f"💾 Saved Ensemble model to {filename}")
+        joblib.dump(self.ensemble, ensemble_filename)
+        print(f"💾 Saved Ensemble model to {ensemble_filename}")
         
         return results
     
