@@ -1,8 +1,8 @@
-# 🎬 IMDb Sentiment Analysis
+# IMDb Sentiment Analysis
 
 A comprehensive machine learning project for sentiment analysis of IMDb movie reviews using multiple classification algorithms and ensemble methods. This project demonstrates production ready machine learning practices including data preprocessing, model training, hyperparameter tuning, evaluation, and interpretability.
 
-## 📊 Dataset
+## Dataset
 
 The project uses the **IMDb Movie Reviews Dataset** containing:
 - **50,000 movie reviews** (25,000 positive, 25,000 negative)
@@ -10,7 +10,7 @@ The project uses the **IMDb Movie Reviews Dataset** containing:
 - **Labels**: Binary sentiment classification (positive/negative)
 - **Balanced dataset**: Equal distribution of positive and negative reviews
 
-## 🔧 Preprocessing Pipeline
+## Preprocessing Pipeline
 
 ### Text Cleaning
 - **HTML tag removal** using BeautifulSoup
@@ -27,7 +27,7 @@ The project uses the **IMDb Movie Reviews Dataset** containing:
   - **Minimum document frequency**: 2
 - **Train-test split**: 80/20 with stratification
 
-## 🤖 Machine Learning Models
+## Machine Learning Models
 
 ### 1. Logistic Regression
 - **Algorithm**: Linear classifier with L2 regularization
@@ -54,7 +54,7 @@ The project uses the **IMDb Movie Reviews Dataset** containing:
 - **Purpose**: Leverage strengths of the two strongest models
 - **Benefits**: Robust, stable performance without Naive Bayes
 
-## 📈 Evaluation Metrics
+## Evaluation Metrics
 
 The project uses comprehensive evaluation metrics:
 
@@ -64,7 +64,7 @@ The project uses comprehensive evaluation metrics:
 - **F1-Score**: Harmonic mean of precision and recall
 - **ROC-AUC**: Area under the Receiver Operating Characteristic curve
 
-## 📊 Results
+## Results
 
 ### Model Performance Comparison
 
@@ -83,15 +83,15 @@ The project uses comprehensive evaluation metrics:
 - **Ensemble impact**: Matches top models (F1 0.886) and adds robustness
 - **Consistent performance**: All models achieve >85% accuracy
 
-## 📊 Visualizations
+## Visualizations
 
 All plots generated during training and evaluation are saved in the `results/plots/` folder.  
 
 You can find:  
-- 🟢 Confusion matrices for Logistic Regression, SVM, and the Ensemble  
-- 📈 ROC curves for these three models  
-- 📊 F1-score comparison plot  
-- ⭐ Top 20 important features for Logistic Regression  
+- Confusion matrices for Logistic Regression, SVM, and the Ensemble  
+- ROC curves for these three models  
+- F1-score comparison plot  
+- Top 20 important features for Logistic Regression  
 
 **View all plots:** `results/plots/`
 
@@ -109,7 +109,7 @@ You can find:
 ### Top 20 Features - Logistic Regression
 ![Top 20 Features Logistic Regression](results/plots/Top%2020%20Features%20-%20Logistic%20Regression.png)
 
-## 🏆 Conclusion
+## Conclusion
 
 ### Best Performing Model: Logistic Regression & LinearSVM (Tie)
 - **F1-Score**: 88.7%
@@ -127,7 +127,7 @@ You can find:
 3. Hyperparameter optimization is crucial to maximize performance
 4. The ensemble offers insurance against individual model variance
 
-## 🚀 How to Run
+## How to Run
 
 ### Prerequisites
 ```bash
@@ -165,7 +165,7 @@ imdb_sentiment_analysis/
 └── README.md                   # This file
 ```
 
-## 🔧 Technical Implementation
+## Technical Implementation
 
 ### Automatic Model Persistence
 - **Training**: All models automatically saved during training
@@ -179,14 +179,14 @@ imdb_sentiment_analysis/
 - **Behavior**: LR/SVM are loaded if saved; ensemble is rebuilt every run from LR+SVM
 - **Comparison**: MultinomialNB is evaluated for charts only and excluded from the ensemble
 
-## 📝 Notes
+## Notes
 
 - **Model Saving**: All models are automatically saved during training to the `models/` directory
 - **Ensemble Functionality**: Comprehensive testing ensures all models work correctly together
 - **Visualization**: All plots are automatically generated and saved to `results/plots/`
 - **Evaluation Report**: Detailed performance metrics saved to `results/evaluation_report.md`
 
-## 📁 Recommended Usage
+## Recommended Usage
 
 While this repository includes Jupyter notebooks for demonstration, **it is recommended to refer directly to the `src/` folder** for running and understanding the full pipeline.  
 
@@ -195,7 +195,7 @@ The `src/` folder contains all the core modules:
 - `models.py` – model training and ensemble creation  
 - `evaluation.py` – evaluation metrics, visualization, and reports  
 
-## 🦭 **The Initial Vision**
+## **The Initial Vision**
 
 The original architecture plan included:
 
